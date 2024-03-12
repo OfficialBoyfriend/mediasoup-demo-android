@@ -4,7 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
-
         <variable
             name="roomProps"
             type="org.mediasoup.droid.demo.vm.RoomProps" />
@@ -40,12 +39,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
+            android:layout_marginTop="5dp"
             android:background="@drawable/bg_area"
             android:paddingLeft="15dp"
             android:paddingTop="8dp"
             android:paddingRight="15dp"
             android:paddingBottom="8dp"
-            android:layout_marginTop="5dp"
             android:text="@string/invitation_link"
             android:textColor="@color/text_color"
             android:textSize="15sp"
@@ -107,15 +106,16 @@
             android:layout_marginBottom="68dp" />
 
         <EditText
-            android:inputType="text"
-            android:imeOptions="actionSend"
             android:id="@+id/chat_input"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:layout_alignParentBottom="true"
+            android:layout_below="@+id/invitation_link"
             android:layout_marginStart="10dp"
+            android:layout_marginTop="10dp"
             android:layout_marginEnd="10dp"
-            android:layout_marginBottom="10dp" />
+            android:layout_toEndOf="@+id/hide_videos"
+            android:imeOptions="actionSend"
+            android:inputType="text" />
 
         <TextView
             android:id="@+id/version"

@@ -46,7 +46,6 @@ import org.mediasoup.droid.lib.model.Peer;
 import java.util.List;
 
 public class RoomActivity extends AppCompatActivity {
-
     private static final String TAG = RoomActivity.class.getSimpleName();
     private static final int REQUEST_CODE_SETTING = 1;
 
