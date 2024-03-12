@@ -1,5 +1,6 @@
 package org.mediasoup.droid.demo;
 
+import android.annotation.SuppressLint;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -19,7 +20,7 @@ public class BindingAdapters {
 
   private static final String TAG = "BindingAdapters";
 
-  @BindingAdapter({"bind:edias_state", "bind:edias_state_animation"})
+  @BindingAdapter({"edias_state", "edias_state_animation"})
   public static void roomState(
       ImageView view, RoomClient.ConnectionState state, Animation animation) {
     if (state == null) {
@@ -39,12 +40,12 @@ public class BindingAdapters {
     }
   }
 
-  @BindingAdapter({"bind:edias_link"})
+  @BindingAdapter({"edias_link"})
   public static void inviteLink(TextView view, String inviteLink) {
     view.setVisibility(TextUtils.isEmpty(inviteLink) ? View.INVISIBLE : View.VISIBLE);
   }
 
-  @BindingAdapter({"bind:edias_hide_videos", "bind:edias_hide_videos_progress"})
+  @BindingAdapter({"edias_hide_videos", "edias_hide_videos_progress"})
   public static void hideVideos(ImageView view, boolean audioOnly, boolean audioOnlyInProgress) {
     view.setEnabled(!audioOnlyInProgress);
     if (!audioOnly) {
@@ -56,7 +57,7 @@ public class BindingAdapters {
     }
   }
 
-  @BindingAdapter({"bind:edias_audio_muted"})
+  @BindingAdapter({"edias_audio_muted"})
   public static void audioMuted(ImageView view, boolean audioMuted) {
     if (!audioMuted) {
       view.setBackgroundResource(R.drawable.bg_left_box_off);
@@ -67,7 +68,7 @@ public class BindingAdapters {
     }
   }
 
-  @BindingAdapter({"bind:edias_restart_ice_progress", "bind:edias_restart_ice_ani"})
+  @BindingAdapter({"edias_restart_ice_progress", "edias_restart_ice_ani"})
   public static void restartIce(
       ImageView view, boolean restart_ice_in_progress, Animation animation) {
     Log.d(TAG, "restartIce() " + restart_ice_in_progress);
@@ -80,7 +81,8 @@ public class BindingAdapters {
     }
   }
 
-  @BindingAdapter({"bind:edias_device"})
+  @SuppressLint("SetTextI18n")
+  @BindingAdapter({"edias_device"})
   public static void deviceInfo(TextView view, DeviceInfo deviceInfo) {
     if (deviceInfo == null) {
       return;

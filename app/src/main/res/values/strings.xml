@@ -28,4 +28,5 @@
 
     <!-- Device Preferences -->
     <string name="camera">camera</string>
+    <string name="room_state">roomState</string>
 </resources>

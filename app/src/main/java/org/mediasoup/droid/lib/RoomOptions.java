@@ -22,24 +22,20 @@ public class RoomOptions {
     return this;
   }
 
-  public RoomOptions setForceTcp(boolean forceTcp) {
+  public void setForceTcp(boolean forceTcp) {
     this.mForceTcp = forceTcp;
-    return this;
   }
 
-  public RoomOptions setProduce(boolean produce) {
+  public void setProduce(boolean produce) {
     this.mProduce = produce;
-    return this;
   }
 
-  public RoomOptions setConsume(boolean consume) {
+  public void setConsume(boolean consume) {
     this.mConsume = consume;
-    return this;
   }
 
-  public RoomOptions setUseDataChannel(boolean useDataChannel) {
+  public void setUseDataChannel(boolean useDataChannel) {
     this.mUseDataChannel = useDataChannel;
-    return this;
   }
 
   @NonNull
