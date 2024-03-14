@@ -15,77 +15,73 @@ import org.mediasoup.droid.lib.model.RoomInfo;
 
 public class RoomProps extends EdiasProps {
 
-  private final Animation mConnectingAnimation;
-  private ObservableField<String> mInvitationLink;
-  private ObservableField<RoomClient.ConnectionState> mConnectionState;
-  private ObservableField<Boolean> mAudioOnly;
-  private ObservableField<Boolean> mAudioOnlyInProgress;
-  private ObservableField<Boolean> mAudioMuted;
-  private ObservableField<Boolean> mRestartIceInProgress;
-  private final Animation mRestartIceAnimation;
+    private final Animation mConnectingAnimation;
+    private final ObservableField<String> mInvitationLink;
+    private final ObservableField<RoomClient.ConnectionState> mConnectionState;
+    private final ObservableField<Boolean> mAudioOnly;
+    private final ObservableField<Boolean> mAudioOnlyInProgress;
+    private final ObservableField<Boolean> mAudioMuted;
+    private final ObservableField<Boolean> mRestartIceInProgress;
+    private final Animation mRestartIceAnimation;
 
-  public RoomProps(@NonNull Application application, @NonNull RoomStore roomStore) {
-    super(application, roomStore);
-    mConnectingAnimation = AnimationUtils.loadAnimation(getApplication(), R.anim.ani_connecting);
-    mInvitationLink = new ObservableField<>();
-    mConnectionState = new ObservableField<>();
-    mAudioOnly = new ObservableField<>();
-    mAudioOnlyInProgress = new ObservableField<>();
-    mAudioMuted = new ObservableField<>();
-    mRestartIceInProgress = new ObservableField<>();
-    mRestartIceAnimation = AnimationUtils.loadAnimation(getApplication(), R.anim.ani_restart_ice);
-  }
+    public RoomProps(@NonNull Application application, @NonNull RoomStore roomStore) {
+        super(application, roomStore);
+        mConnectingAnimation = AnimationUtils.loadAnimation(getApplication(), R.anim.ani_connecting);
+        mInvitationLink = new ObservableField<>();
+        mConnectionState = new ObservableField<>();
+        mAudioOnly = new ObservableField<>();
+        mAudioOnlyInProgress = new ObservableField<>();
+        mAudioMuted = new ObservableField<>();
+        mRestartIceInProgress = new ObservableField<>();
+        mRestartIceAnimation = AnimationUtils.loadAnimation(getApplication(), R.anim.ani_restart_ice);
+    }
 
-  public Animation getConnectingAnimation() {
-    return mConnectingAnimation;
-  }
+    public Animation getConnectingAnimation() {
+        return mConnectingAnimation;
+    }
 
-  public ObservableField<String> getInvitationLink() {
-    return mInvitationLink;
-  }
+    public ObservableField<String> getInvitationLink() {
+        return mInvitationLink;
+    }
 
-  public ObservableField<RoomClient.ConnectionState> getConnectionState() {
-    return mConnectionState;
-  }
+    public ObservableField<RoomClient.ConnectionState> getConnectionState() {
+        return mConnectionState;
+    }
 
-  public ObservableField<Boolean> getAudioOnly() {
-    return mAudioOnly;
-  }
+    public ObservableField<Boolean> getAudioOnly() {
+        return mAudioOnly;
+    }
 
-  public ObservableField<Boolean> getAudioOnlyInProgress() {
-    return mAudioOnlyInProgress;
-  }
+    public ObservableField<Boolean> getAudioOnlyInProgress() {
+        return mAudioOnlyInProgress;
+    }
 
-  public ObservableField<Boolean> getAudioMuted() {
-    return mAudioMuted;
-  }
+    public ObservableField<Boolean> getAudioMuted() {
+        return mAudioMuted;
+    }
 
-  public ObservableField<Boolean> getRestartIceInProgress() {
-    return mRestartIceInProgress;
-  }
+    public ObservableField<Boolean> getRestartIceInProgress() {
+        return mRestartIceInProgress;
+    }
 
-  public Animation getRestartIceAnimation() {
-    return mRestartIceAnimation;
-  }
+    public Animation getRestartIceAnimation() {
+        return mRestartIceAnimation;
+    }
 
-  private void receiveState(RoomInfo roomInfo) {
-    mConnectionState.set(roomInfo.getConnectionState());
-    mInvitationLink.set(roomInfo.getUrl());
-  }
+    private void receiveState(RoomInfo roomInfo) {
+        mConnectionState.set(roomInfo.getConnectionState());
+        mInvitationLink.set(roomInfo.getUrl());
+    }
 
-  @Override
-  public void connect(LifecycleOwner owner) {
-    RoomStore roomStore = getRoomStore();
-    roomStore.getRoomInfo().observe(owner, this::receiveState);
-    roomStore
-        .getMe()
-        .observe(
-            owner,
-            me -> {
-              mAudioOnly.set(me.isAudioOnly());
-              mAudioOnlyInProgress.set(me.isAudioOnlyInProgress());
-              mAudioMuted.set(me.isAudioMuted());
-              mRestartIceInProgress.set(me.isRestartIceInProgress());
-            });
-  }
+    @Override
+    public void connect(LifecycleOwner owner) {
+        RoomStore roomStore = getRoomStore();
+        roomStore.getRoomInfo().observe(owner, this::receiveState);
+        roomStore.getMe().observe(owner, me -> {
+            mAudioOnly.set(me.isAudioOnly());
+            mAudioOnlyInProgress.set(me.isAudioOnlyInProgress());
+            mAudioMuted.set(me.isAudioMuted());
+            mRestartIceInProgress.set(me.isRestartIceInProgress());
+        });
+    }
 }
