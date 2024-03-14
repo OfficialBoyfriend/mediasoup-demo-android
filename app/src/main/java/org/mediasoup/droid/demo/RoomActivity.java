@@ -111,9 +111,6 @@ public class RoomActivity extends AppCompatActivity {
         // Device config.
         String camera = preferences.getString("camera", "front");
         PeerConnectionUtils.setPreferCameraFace(camera);
-
-        // Display version number.
-        ((TextView) findViewById(R.id.version)).setText(String.valueOf(MediasoupClient.version()));
     }
 
     private void initRoomClient() {
@@ -122,6 +119,9 @@ public class RoomActivity extends AppCompatActivity {
 
     private void initViewModel() {
         EdiasProps.Factory factory = new EdiasProps.Factory(getApplication(), mRoomStore);
+
+        // Display version number.
+        ((TextView) findViewById(R.id.version)).setText(String.valueOf(MediasoupClient.version()));
 
         // Room.
         RoomProps roomProps = ViewModelProviders.of(this, factory).get(RoomProps.class);
