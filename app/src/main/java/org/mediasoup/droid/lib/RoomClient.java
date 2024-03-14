@@ -86,13 +86,13 @@ public class RoomClient extends RoomMessageHandler {
     // Local bot DataProducer.
     private DataProducer mBotDataProducer;
     // jobs worker handler.
-    private Handler mWorkHandler;
+    private final Handler mWorkHandler;
     // main looper handler.
-    private Handler mMainHandler;
+    private final Handler mMainHandler;
     // Disposable Composite. used to cancel running
-    private CompositeDisposable mCompositeDisposable = new CompositeDisposable();
+    private final CompositeDisposable mCompositeDisposable = new CompositeDisposable();
     // Share preferences
-    private SharedPreferences mPreferences;
+    private final SharedPreferences mPreferences;
 
     public RoomClient(Context context, RoomStore roomStore, String roomId, String peerId, String displayName) {
         this(context, roomStore, roomId, peerId, displayName, false, false, null);

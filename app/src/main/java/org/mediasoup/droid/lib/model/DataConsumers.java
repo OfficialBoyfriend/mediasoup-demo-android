@@ -7,17 +7,17 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class DataConsumers {
 
-  private final Map<String, DataConsumer> dataConsumers;
+    private final Map<String, DataConsumer> dataConsumers;
 
-  public DataConsumers() {
-    dataConsumers = new ConcurrentHashMap<>();
-  }
+    public DataConsumers() {
+        dataConsumers = new ConcurrentHashMap<>();
+    }
 
-  public void addDataConsumer(DataConsumer dataConsumer) {
-    dataConsumers.put(dataConsumer.getId(), dataConsumer);
-  }
+    public void addDataConsumer(DataConsumer dataConsumer) {
+        dataConsumers.put(dataConsumer.getId(), dataConsumer);
+    }
 
-  public void removeDataConsumer(String dataConsumerId) {
-    dataConsumers.remove(dataConsumerId);
-  }
+    public void removeDataConsumer(String dataConsumerId) {
+        dataConsumers.remove(dataConsumerId);
+    }
 }

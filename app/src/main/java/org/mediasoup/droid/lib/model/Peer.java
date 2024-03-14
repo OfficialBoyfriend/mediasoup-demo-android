@@ -10,57 +10,54 @@ import java.util.Set;
 @SuppressWarnings("WeakerAccess")
 public class Peer extends Info {
 
-  private String mId;
-  private String mDisplayName;
-  private DeviceInfo mDevice;
+    private String mId;
+    private String mDisplayName;
+    private DeviceInfo mDevice;
 
-  private Set<String> mConsumers;
-  private Set<String> mDataConsumers;
+    private Set<String> mConsumers;
+    private Set<String> mDataConsumers;
 
-  public Peer(@NonNull JSONObject info) {
-    mId = info.optString("id");
-    mDisplayName = info.optString("displayName");
-    JSONObject deviceInfo = info.optJSONObject("device");
-    if (deviceInfo != null) {
-      mDevice =
-          new DeviceInfo()
-              .setFlag(deviceInfo.optString("flag"))
-              .setName(deviceInfo.optString("name"))
-              .setVersion(deviceInfo.optString("version"));
-    } else {
-      mDevice = DeviceInfo.unknownDevice();
+    public Peer(@NonNull JSONObject info) {
+        mId = info.optString("id");
+        mDisplayName = info.optString("displayName");
+        JSONObject deviceInfo = info.optJSONObject("device");
+        if (deviceInfo != null) {
+            mDevice = new DeviceInfo().setFlag(deviceInfo.optString("flag")).setName(deviceInfo.optString("name")).setVersion(deviceInfo.optString("version"));
+        } else {
+            mDevice = DeviceInfo.unknownDevice();
+        }
+        mConsumers = new HashSet<>();
+        mDataConsumers = new HashSet<>();
     }
-    mConsumers = new HashSet<>();
-    mDataConsumers = new HashSet<>();
-  }
 
-  @Override
-  public String getId() {
-    return mId;
-  }
+    @Override
+    public String getId() {
+        return mId;
+    }
 
-  @Override
-  public String getDisplayName() {
-    return mDisplayName;
-  }
+    @Override
+    public String getDisplayName() {
+        return mDisplayName;
+    }
 
-  @Override
-  public DeviceInfo getDevice() {
-    return mDevice;
-  }
+    @Override
+    public DeviceInfo getDevice() {
+        return mDevice;
+    }
 
-  public void setDisplayName(String displayName) {
-    this.mDisplayName = displayName;
-  }
+    public void setDisplayName(String displayName) {
+        this.mDisplayName = displayName;
+    }
 
-  public void setDevice(DeviceInfo device) {
-    this.mDevice = device;
-  }
+    public void setDevice(DeviceInfo device) {
+        this.mDevice = device;
+    }
 
-  public Set<String> getConsumers() {
-    return mConsumers;
-  }
-  public Set<String> getDataConsumers() {
-    return mDataConsumers;
-  }
+    public Set<String> getConsumers() {
+        return mConsumers;
+    }
+
+    public Set<String> getDataConsumers() {
+        return mDataConsumers;
+    }
 }
