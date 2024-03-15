@@ -221,9 +221,11 @@ public class RoomActivity extends AppCompatActivity {
         @Override
         public void onGranted() {
             Logger.d(TAG, "permission granted");
-            if (mRoomClient != null) {
-                mRoomClient.join();
+            if (mRoomClient == null) {
+                Logger.w(TAG, "not join room");
+                return;
             }
+            mRoomClient.join();
         }
     };
 
