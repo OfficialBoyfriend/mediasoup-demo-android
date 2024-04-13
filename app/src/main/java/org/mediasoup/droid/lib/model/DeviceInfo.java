@@ -1,10 +1,10 @@
 package org.mediasoup.droid.lib.model;
 
+import static org.mediasoup.droid.lib.JsonUtils.jsonPut;
+
 import android.os.Build;
 
 import org.json.JSONObject;
-
-import static org.mediasoup.droid.lib.JsonUtils.jsonPut;
 
 @SuppressWarnings("WeakerAccess")
 public class DeviceInfo {

@@ -4,12 +4,6 @@ import android.text.TextUtils;
 
 import androidx.lifecycle.MutableLiveData;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.mediasoup.droid.Consumer;
-import org.mediasoup.droid.DataConsumer;
-import org.mediasoup.droid.DataProducer;
-import org.mediasoup.droid.Producer;
 import org.mediasoup.droid.lib.RoomClient;
 import org.mediasoup.droid.lib.model.Consumers;
 import org.mediasoup.droid.lib.model.DataConsumers;
@@ -19,6 +13,13 @@ import org.mediasoup.droid.lib.model.Notify;
 import org.mediasoup.droid.lib.model.Peers;
 import org.mediasoup.droid.lib.model.Producers;
 import org.mediasoup.droid.lib.model.RoomInfo;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.mediasoup.droid.Consumer;
+import org.mediasoup.droid.DataConsumer;
+import org.mediasoup.droid.DataProducer;
+import org.mediasoup.droid.Producer;
 
 /**
  * Room state.

@@ -3,8 +3,8 @@ package org.mediasoup.droid.lib.socket;
 import android.os.Handler;
 import android.os.HandlerThread;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.mediasoup.droid.lib.lv.TLSSocketFactory;
+
 import org.json.JSONObject;
 import org.mediasoup.droid.Logger;
 import org.protoojs.droid.Message;
@@ -13,7 +13,6 @@ import org.protoojs.droid.transports.AbsWebSocketTransport;
 import java.security.cert.CertificateException;
 import java.util.concurrent.CountDownLatch;
 
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -23,10 +22,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
-import okhttp3.logging.HttpLoggingInterceptor;
 import okio.ByteString;
-
-import static org.apache.http.conn.ssl.SSLSocketFactory.SSL;
 
 public class WebSocketTransport extends AbsWebSocketTransport {
 
@@ -169,7 +165,7 @@ public class WebSocketTransport extends AbsWebSocketTransport {
     private class ProtooWebSocketListener extends WebSocketListener {
 
         @Override
-        public void onOpen(@NotNull WebSocket webSocket, @NotNull Response response) {
+        public void onOpen(WebSocket webSocket, Response response) {
             if (mClosed) {
                 return;
             }
@@ -183,7 +179,7 @@ public class WebSocketTransport extends AbsWebSocketTransport {
         }
 
         @Override
-        public void onClosed(@NotNull WebSocket webSocket, int code, @NotNull String reason) {
+        public void onClosed(WebSocket webSocket, int code, String reason) {
             Logger.w(TAG, "onClosed()");
             if (mClosed) {
                 return;
@@ -197,16 +193,21 @@ public class WebSocketTransport extends AbsWebSocketTransport {
         }
 
         @Override
-        public void onClosing(@NotNull WebSocket webSocket, int code, @NotNull String reason) {
+        public void onClosing(WebSocket webSocket, int code, String reason) {
             Logger.w(TAG, "onClosing()");
         }
 
         @Override
-        public void onFailure(@NotNull WebSocket webSocket, @NotNull Throwable t, @Nullable Response response) {
-            Logger.w(TAG, "onFailure()");
+        public void onFailure(WebSocket webSocket, Throwable t, Response response) {
+            Logger.w(TAG, "onFailure()" + t.toString());
+
+            // onFailure()javax.net.ssl.SSLHandshakeException: javax.net.ssl.SSLProtocolException: SSL handshake aborted: ssl=0x616d4370: Failure in SSL library, usually a protocol error
+            // error:1407742E:SSL routines:SSL23_GET_SERVER_HELLO:tlsv1 alert protocol version (external/openssl/ssl/s23_clnt.c:744 0x5c233cfc:0x00000000)
+
             if (mClosed) {
                 return;
             }
+
             if (scheduleReconnect()) {
                 if (mListener != null) {
                     if (mConnected) {
@@ -226,7 +227,7 @@ public class WebSocketTransport extends AbsWebSocketTransport {
         }
 
         @Override
-        public void onMessage(@NotNull WebSocket webSocket, @NotNull String text) {
+        public void onMessage(WebSocket webSocket, String text) {
             Logger.d(TAG, "onMessage()");
             if (mClosed) {
                 return;
@@ -241,7 +242,7 @@ public class WebSocketTransport extends AbsWebSocketTransport {
         }
 
         @Override
-        public void onMessage(@NotNull WebSocket webSocket, @NotNull ByteString bytes) {
+        public void onMessage(WebSocket webSocket, ByteString bytes) {
             Logger.d(TAG, "onMessage()");
         }
     }
@@ -268,18 +269,19 @@ public class WebSocketTransport extends AbsWebSocketTransport {
                 }
             }};
 
-            final SSLContext sslContext = SSLContext.getInstance(SSL);
-            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+            // ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.COMPATIBLE_TLS).supportsTlsExtensions(true).tlsVersions(TlsVersion.TLS_1_2, TlsVersion.TLS_1_1, TlsVersion.TLS_1_0).cipherSuites(CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, CipherSuite.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256, CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA, CipherSuite.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA, CipherSuite.TLS_ECDHE_RSA_WITH_RC4_128_SHA, CipherSuite.TLS_DHE_RSA_WITH_AES_128_CBC_SHA, CipherSuite.TLS_DHE_DSS_WITH_AES_128_CBC_SHA, CipherSuite.TLS_DHE_RSA_WITH_AES_256_CBC_SHA).build();
 
-            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+//            final SSLContext sslContext = SSLContext.getInstance(SSL);
+//            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+//
+//            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+            final SSLSocketFactory sslSocketFactory = new TLSSocketFactory();
 
-            HttpLoggingInterceptor httpLoggingInterceptor = new HttpLoggingInterceptor(s -> Logger.d(TAG, s));
-            httpLoggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BASIC);
+            // HttpLoggingInterceptor httpLoggingInterceptor = new HttpLoggingInterceptor(s -> Logger.d(TAG, s));
+            // httpLoggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BASIC);
 
-            OkHttpClient.Builder builder = new OkHttpClient.Builder().addInterceptor(httpLoggingInterceptor).retryOnConnectionFailure(true);
-            builder.sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0]);
-
-            builder.hostnameVerifier((hostname, session) -> true);
+            // .addInterceptor(httpLoggingInterceptor)
+            final OkHttpClient.Builder builder = new OkHttpClient.Builder().retryOnConnectionFailure(true).sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0]).hostnameVerifier((hostname, session) -> true);
 
             return builder.build();
         } catch (Exception e) {

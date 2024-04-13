@@ -1,5 +1,6 @@
 package org.mediasoup.droid.lib.model;
 
+
 import org.mediasoup.droid.lib.Utils;
 
 public class Notify {

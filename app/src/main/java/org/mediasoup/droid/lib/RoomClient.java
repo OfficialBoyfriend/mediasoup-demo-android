@@ -4,15 +4,18 @@ import static org.mediasoup.droid.lib.JsonUtils.jsonPut;
 import static org.mediasoup.droid.lib.JsonUtils.toJsonObject;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
-import android.preference.PreferenceManager;
 import android.text.TextUtils;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.WorkerThread;
+
+import org.mediasoup.droid.lib.lv.RoomStore;
+import org.mediasoup.droid.lib.model.Peer;
+import org.mediasoup.droid.lib.socket.WebSocketTransport;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,17 +30,17 @@ import org.mediasoup.droid.Producer;
 import org.mediasoup.droid.RecvTransport;
 import org.mediasoup.droid.SendTransport;
 import org.mediasoup.droid.Transport;
-import org.mediasoup.droid.lib.lv.RoomStore;
-import org.mediasoup.droid.lib.model.Peer;
-import org.mediasoup.droid.lib.socket.WebSocketTransport;
 import org.protoojs.droid.Message;
 import org.protoojs.droid.ProtooException;
 import org.webrtc.AudioTrack;
 import org.webrtc.CameraVideoCapturer;
 import org.webrtc.DataChannel;
+import org.webrtc.MediaStreamTrack;
 import org.webrtc.VideoTrack;
+import org.webrtc.voiceengine.WebRtcAudioEffects;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import io.reactivex.disposables.CompositeDisposable;
@@ -62,7 +65,7 @@ public class RoomClient extends RoomMessageHandler {
     // Display name.
     private String mDisplayName;
     // Protoo URL.
-    private String mProtooUrl;
+    private final String mProtooUrl;
     // mProtoo-client Protoo instance.
     private Protoo mProtoo;
     // mediasoup-client Device instance.
@@ -91,28 +94,58 @@ public class RoomClient extends RoomMessageHandler {
     private final Handler mMainHandler;
     // Disposable Composite. used to cancel running
     private final CompositeDisposable mCompositeDisposable = new CompositeDisposable();
-    // Share preferences
-    private final SharedPreferences mPreferences;
+    // Whether we should produce audio/video.
+    private final boolean mDefaultDisableVideo;
+    private final double talk_volume;
 
-    public RoomClient(Context context, RoomStore roomStore, String roomId, String peerId, String displayName) {
-        this(context, roomStore, roomId, peerId, displayName, false, false, null);
+    public RoomClient(Context context, RoomStore roomStore, String hostname, int port, String roomId, String peerId, double talk_volume, String displayName) {
+        this(context, roomStore, hostname, port, roomId, peerId, displayName, false, false, false, talk_volume, null);
     }
 
-    public RoomClient(Context context, RoomStore roomStore, String roomId, String peerId, String displayName, RoomOptions options) {
-        this(context, roomStore, roomId, peerId, displayName, false, false, options);
+    public RoomClient(Context context, RoomStore roomStore, String hostname, int port, String roomId, String peerId, String displayName, double talk_volume, RoomOptions options) {
+        this(context, roomStore, hostname, port, roomId, peerId, displayName, false, false, false, talk_volume, options);
     }
 
-    public RoomClient(Context context, RoomStore roomStore, String roomId, String peerId, String displayName, boolean forceH264, boolean forceVP9, RoomOptions options) {
+    public RoomClient(Context context, RoomStore roomStore, String hostname, int port, String roomId, String peerId, String displayName, boolean forceH264, boolean forceVP9, boolean isDefaultDisableVideo, double talk_volume, RoomOptions options) {
         super(roomStore);
+
         this.mContext = context.getApplicationContext();
         this.mOptions = options == null ? new RoomOptions() : options;
         this.mDisplayName = displayName;
         this.mClosed = false;
-        this.mProtooUrl = UrlFactory.getProtooUrl(roomId, peerId, forceH264, forceVP9);
+        this.mProtooUrl = UrlFactory.getProtooUrl(hostname, port, roomId, peerId, forceH264, forceVP9);
+        this.mDefaultDisableVideo = isDefaultDisableVideo;
+
+        if (talk_volume > 1 || talk_volume < 0) {
+            Log.e("RoomClient", "talk_volume must be less than 1");
+            this.talk_volume = 0.2;
+        } else {
+            this.talk_volume = talk_volume;
+        }
 
         this.mStore.setMe(peerId, displayName, this.mOptions.getDevice());
-        this.mStore.setRoomUrl(roomId, UrlFactory.getInvitationLink(roomId, forceH264, forceVP9));
-        this.mPreferences = PreferenceManager.getDefaultSharedPreferences(this.mContext);
+        this.mStore.setRoomUrl(roomId, UrlFactory.getInvitationLink(hostname, roomId, forceH264, forceVP9));
+
+        final boolean isDeviceSupportHWAec = WebRtcAudioEffects.canUseAcousticEchoCanceler();
+        final boolean isDeviceSupportHWNs = WebRtcAudioEffects.canUseNoiseSuppressor();
+        final boolean isAcousticEchoCancelerSupported = WebRtcAudioEffects.isAcousticEchoCancelerSupported();
+        final boolean isNoiseSuppressorSupported = WebRtcAudioEffects.isNoiseSuppressorSupported();
+        Logger.d(TAG, "HW AEC: " + isDeviceSupportHWAec + " HW NS: " + isDeviceSupportHWNs);
+        Logger.d(TAG, "AcousticEchoCanceler supported: " + isAcousticEchoCancelerSupported);
+        Logger.d(TAG, "NoiseSuppressor supported: " + isNoiseSuppressorSupported);
+
+        // TODO(zeronumber)
+        // if (!isDeviceSupportHWAec) {
+        // WebRtcAudioUtils.setWebRtcBasedAcousticEchoCanceler(true);
+        // }
+        // if (!isDeviceSupportHWNs) {
+        // WebRtcAudioUtils.setWebRtcBasedNoiseSuppressor(true);
+        // }
+        // WebRtcAudioUtils.setWebRtcBasedAutomaticGainControl(true);
+        // WebRtcAudioManager.setBlacklistDeviceForOpenSLESUsage(true);
+
+        // YiJianApp.getInstance().getAppAudioManager().setMode(AudioManager.MODE_IN_COMMUNICATION);
+        // YiJianApp.getInstance().getAppAudioManager().setSpeakerphoneOn(true);
 
         // init worker handler.
         HandlerThread handlerThread = new HandlerThread("worker");
@@ -209,6 +242,7 @@ public class RoomClient extends RoomMessageHandler {
         mStore.setAudioOnlyInProgress(true);
 
         disableCam();
+
         mWorkHandler.post(() -> {
             for (ConsumerHolder holder : mConsumers.values()) {
                 if (!"video".equals(holder.mConsumer.getKind())) {
@@ -229,6 +263,7 @@ public class RoomClient extends RoomMessageHandler {
         if (mCamProducer == null && mOptions.isProduce()) {
             enableCam();
         }
+
         mWorkHandler.post(() -> {
             for (ConsumerHolder holder : mConsumers.values()) {
                 if (!"video".equals(holder.mConsumer.getKind())) {
@@ -284,7 +319,7 @@ public class RoomClient extends RoomMessageHandler {
                     mRecvTransport.restartIce(iceParameters);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                // e.printStackTrace();
                 logError("restartIce() | failed:", e);
                 mStore.addNotify("error", "ICE restart failed: " + e.getMessage());
             }
@@ -318,7 +353,7 @@ public class RoomClient extends RoomMessageHandler {
                 mProtoo.syncRequest("requestConsumerKeyFrame", req -> jsonPut(req, "consumerId", "consumerId"));
                 mStore.addNotify("Keyframe requested for video consumer");
             } catch (ProtooException e) {
-                e.printStackTrace();
+                // e.printStackTrace();
                 logError("restartIce() | failed:", e);
                 mStore.addNotify("error", "ICE restart failed: " + e.getMessage());
             }
@@ -449,8 +484,8 @@ public class RoomClient extends RoomMessageHandler {
     public void changeDisplayName(String displayName) {
         Logger.d(TAG, "changeDisplayName()");
 
-        // Store in cookie.
-        mPreferences.edit().putString("displayName", displayName).apply();
+        // TODO(zeronumber): Store in cookie.
+        // mPreferences.edit().putString("displayName", displayName).apply();
 
         mWorkHandler.post(() -> {
             try {
@@ -459,7 +494,7 @@ public class RoomClient extends RoomMessageHandler {
                 mStore.setDisplayName(displayName);
                 mStore.addNotify("Display name change");
             } catch (ProtooException e) {
-                e.printStackTrace();
+                // e.printStackTrace();
                 logError("changeDisplayName() | failed:", e);
                 mStore.addNotify("error", "Could not change display name: " + e.getMessage());
 
@@ -566,6 +601,7 @@ public class RoomClient extends RoomMessageHandler {
             return;
         }
         this.mClosed = true;
+
         Logger.d(TAG, "close()");
 
         mWorkHandler.post(() -> {
@@ -576,11 +612,15 @@ public class RoomClient extends RoomMessageHandler {
             }
 
             // dispose all transport and device.
+            Logger.d(TAG, "close() | closing disposeTransportDevice");
             disposeTransportDevice();
 
             // dispose audio track.
+            Logger.d(TAG, "close() | closing dispose mLocalAudioTrack -> " + (mLocalAudioTrack != null));
             if (mLocalAudioTrack != null) {
+                Logger.d(TAG, "close() | closing setEnabled(false) mLocalAudioTrack");
                 mLocalAudioTrack.setEnabled(false);
+                Logger.d(TAG, "close() | closing dispose mLocalAudioTrack");
                 mLocalAudioTrack.dispose();
                 mLocalAudioTrack = null;
             }
@@ -593,43 +633,51 @@ public class RoomClient extends RoomMessageHandler {
             }
 
             // dispose peerConnection.
+            Logger.d(TAG, "close() | closing dispose mPeerConnectionUtils");
             mPeerConnectionUtils.dispose();
 
             // quit worker handler thread.
+            Logger.d(TAG, "close() | closing quit worker handler thread");
             mWorkHandler.getLooper().quit();
         });
 
         // dispose request.
+        Logger.d(TAG, "close() | closing dispose mCompositeDisposable");
         mCompositeDisposable.dispose();
 
         // Set room state.
+        Logger.d(TAG, "close() | closing setRoomState");
         mStore.setRoomState(ConnectionState.CLOSED);
     }
 
     @WorkerThread
     private void disposeTransportDevice() {
         Logger.d(TAG, "disposeTransportDevice()");
-        // Close mediasoup Transports.
+
         if (mSendTransport != null) {
+            Logger.d(TAG, "disposeTransportDevice() | closing mSendTransport");
             mSendTransport.close();
+            Logger.d(TAG, "disposeTransportDevice() | closing mSendTransport.dispose()");
             mSendTransport.dispose();
             mSendTransport = null;
         }
 
         if (mRecvTransport != null) {
+            Logger.d(TAG, "disposeTransportDevice() | closing mRecvTransport");
             mRecvTransport.close();
+            Logger.d(TAG, "disposeTransportDevice() | closing mRecvTransport.dispose()");
             mRecvTransport.dispose();
             mRecvTransport = null;
         }
 
-        // dispose device.
         if (mMediasoupDevice != null) {
+            Logger.d(TAG, "disposeTransportDevice() | closing mMediasoupDevice");
             mMediasoupDevice.dispose();
             mMediasoupDevice = null;
         }
     }
 
-    private Protoo.Listener peerListener = new Protoo.Listener() {
+    private final Protoo.Listener peerListener = new Protoo.Listener() {
         @Override
         public void onOpen() {
             mWorkHandler.post(() -> joinImpl());
@@ -711,8 +759,18 @@ public class RoomClient extends RoomMessageHandler {
         Logger.d(TAG, "joinImpl()");
 
         try {
+            final String routerRtpCapabilities = mProtoo.syncRequest("getRouterRtpCapabilities");
+
+            /*
+            List<PeerConnection.IceServer> iceServers = new ArrayList<>();
+            PeerConnection.RTCConfiguration rtcConfiguration = new PeerConnection.RTCConfiguration(iceServers);
+            rtcConfiguration.audioJitterBufferMaxPackets = 1600;
+            rtcConfiguration.audioJitterBufferFastAccelerate = true;
+            PeerConnectionOptions peerConnectionOptions = new PeerConnectionOptions();
+            peerConnectionOptions.setRTCConfig(rtcConfiguration);
+            */
+
             mMediasoupDevice = new Device();
-            String routerRtpCapabilities = mProtoo.syncRequest("getRouterRtpCapabilities");
             mMediasoupDevice.load(routerRtpCapabilities, null);
             String rtpCapabilities = mMediasoupDevice.getRtpCapabilities();
 
@@ -739,7 +797,7 @@ public class RoomClient extends RoomMessageHandler {
             mStore.setRoomState(ConnectionState.CONNECTED);
             mStore.addNotify("You are in the room!", 3000);
 
-            JSONObject resObj = JsonUtils.toJsonObject(joinResponse);
+            JSONObject resObj = toJsonObject(joinResponse);
             JSONArray peers = resObj.optJSONArray("peers");
             for (int i = 0; peers != null && i < peers.length(); i++) {
                 JSONObject peer = peers.getJSONObject(i);
@@ -749,13 +807,16 @@ public class RoomClient extends RoomMessageHandler {
             // Enable mic/webcam.
             if (mOptions.isProduce()) {
                 boolean canSendMic = mMediasoupDevice.canProduce("audio");
+                // 这里检测是否可以可以生产视频（是否有摄像头），不需要与 mDefaultDisableVideo 关联。
                 boolean canSendCam = mMediasoupDevice.canProduce("video");
                 mStore.setMediaCapabilities(canSendMic, canSendCam);
                 mMainHandler.post(this::enableMic);
-                mMainHandler.post(this::enableCam);
+                if (!mDefaultDisableVideo) {
+                    mMainHandler.post(this::enableCam);
+                }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             logError("joinRoom() failed:", e);
             if (TextUtils.isEmpty(e.getMessage())) {
                 mStore.addNotify("error", "Could not join the room, internal error");
@@ -798,7 +859,7 @@ public class RoomClient extends RoomMessageHandler {
             }, mLocalAudioTrack, null, null, null);
             mStore.addProducer(mMicProducer);
         } catch (MediasoupException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             logError("enableMic() | failed:", e);
             mStore.addNotify("error", "Error enabling microphone: " + e.getMessage());
             if (mLocalAudioTrack != null) {
@@ -820,7 +881,8 @@ public class RoomClient extends RoomMessageHandler {
         try {
             mProtoo.syncRequest("closeProducer", req -> jsonPut(req, "producerId", mMicProducer.getId()));
         } catch (ProtooException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
+            logError("disableMic() | failed:", e);
             mStore.addNotify("error", "Error closing server-side mic Producer: " + e.getMessage());
         }
         mMicProducer = null;
@@ -835,7 +897,7 @@ public class RoomClient extends RoomMessageHandler {
             mProtoo.syncRequest("pauseProducer", req -> jsonPut(req, "producerId", mMicProducer.getId()));
             mStore.setProducerPaused(mMicProducer.getId());
         } catch (ProtooException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             logError("muteMic() | failed:", e);
             mStore.addNotify("error", "Error pausing server-side mic Producer: " + e.getMessage());
         }
@@ -844,13 +906,19 @@ public class RoomClient extends RoomMessageHandler {
     @WorkerThread
     private void unmuteMicImpl() {
         Logger.d(TAG, "unmuteMicImpl()");
+
+        if (mMicProducer == null) {
+            Logger.w(TAG, "unmuteMic() | mMicProducer is null");
+            return;
+        }
+
         mMicProducer.resume();
 
         try {
             mProtoo.syncRequest("resumeProducer", req -> jsonPut(req, "producerId", mMicProducer.getId()));
             mStore.setProducerResumed(mMicProducer.getId());
         } catch (ProtooException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             logError("unmuteMic() | failed:", e);
             mStore.addNotify("error", "Error resuming server-side mic Producer: " + e.getMessage());
         }
@@ -889,7 +957,7 @@ public class RoomClient extends RoomMessageHandler {
             }, mLocalVideoTrack, null, null, null);
             mStore.addProducer(mCamProducer);
         } catch (MediasoupException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             logError("enableWebcam() | failed:", e);
             mStore.addNotify("error", "Error enabling webcam: " + e.getMessage());
             if (mLocalVideoTrack != null) {
@@ -910,7 +978,7 @@ public class RoomClient extends RoomMessageHandler {
         try {
             mProtoo.syncRequest("closeProducer", req -> jsonPut(req, "producerId", mCamProducer.getId()));
         } catch (ProtooException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             mStore.addNotify("error", "Error closing server-side webcam Producer: " + e.getMessage());
         }
         mCamProducer = null;
@@ -960,9 +1028,9 @@ public class RoomClient extends RoomMessageHandler {
         mRecvTransport = mMediasoupDevice.createRecvTransport(recvTransportListener, id, iceParameters, iceCandidates, dtlsParameters, sctpParameters);
     }
 
-    private SendTransport.Listener sendTransportListener = new SendTransport.Listener() {
+    private final SendTransport.Listener sendTransportListener = new SendTransport.Listener() {
 
-        private String listenerTAG = TAG + "_SendTrans";
+        private final String listenerTAG = TAG + "_SendTrans";
 
         @Override
         public String onProduce(Transport transport, String kind, String rtpParameters, String appData) {
@@ -1021,9 +1089,9 @@ public class RoomClient extends RoomMessageHandler {
         }
     };
 
-    private RecvTransport.Listener recvTransportListener = new RecvTransport.Listener() {
+    private final RecvTransport.Listener recvTransportListener = new RecvTransport.Listener() {
 
-        private String listenerTAG = TAG + "_RecvTrans";
+        private final String listenerTAG = TAG + "_RecvTrans";
 
         @Override
         public void onConnect(Transport transport, String dtlsParameters) {
@@ -1049,7 +1117,7 @@ public class RoomClient extends RoomMessageHandler {
             String response = mProtoo.syncRequest("produce", generator);
             return new JSONObject(response).optString("id");
         } catch (ProtooException | JSONException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             logError("send produce request failed", e);
             return "";
         }
@@ -1061,7 +1129,7 @@ public class RoomClient extends RoomMessageHandler {
             String response = mProtoo.syncRequest("produceData", generator);
             return new JSONObject(response).optString("id");
         } catch (ProtooException | JSONException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             logError("send produce request failed", e);
             return "";
         }
@@ -1092,6 +1160,14 @@ public class RoomClient extends RoomMessageHandler {
                 Logger.w(TAG, "onTransportClose for consume");
             }, id, producerId, kind, rtpParameters, appData);
 
+            /*
+            // TODO(zeronumber): Set talk volume
+            final MediaStreamTrack mediaStreamTrack = consumer.getTrack();
+            if (mediaStreamTrack instanceof AudioTrack) {
+                ((AudioTrack) mediaStreamTrack).setVolume(talk_volume);
+            }
+             */
+
             mConsumers.put(consumer.getId(), new ConsumerHolder(peerId, consumer));
             mStore.addConsumer(peerId, type, consumer, producerPaused);
 
@@ -1104,7 +1180,7 @@ public class RoomClient extends RoomMessageHandler {
                 pauseConsumer(consumer);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             logError("\"newConsumer\" request failed:", e);
             mStore.addNotify("error", "Error creating a Consumer: " + e.getMessage());
         }
@@ -1158,7 +1234,7 @@ public class RoomClient extends RoomMessageHandler {
 
                         byte[] data = new byte[buffer.data.remaining()];
                         buffer.data.get(data);
-                        String message = new String(data, "UTF-8");
+                        String message = new String(data, StandardCharsets.UTF_8);
                         if ("chat".equals(dataConsumer.getLabel())) {
                             List<Peer> peerList = mStore.getPeers().getValue().getAllPeers();
                             Peer sendingPeer = null;
@@ -1177,7 +1253,8 @@ public class RoomClient extends RoomMessageHandler {
                             mStore.addNotifyMessage("Message from Bot:", message);
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        // e.printStackTrace();
+                        logError("DataConsumer \"message\" event failed:", e);
                     }
                 }
 
@@ -1192,9 +1269,8 @@ public class RoomClient extends RoomMessageHandler {
 
             // We are ready. Answer the protoo request.
             handler.accept();
-
         } catch (Exception e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             logError("\"newDataConsumer\" request failed:", e);
             mStore.addNotify("error", "Error creating a DataConsumer: " + e.getMessage());
         }
@@ -1212,7 +1288,7 @@ public class RoomClient extends RoomMessageHandler {
             consumer.pause();
             mStore.setConsumerPaused(consumer.getId(), "local");
         } catch (ProtooException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             logError("pauseConsumer() | failed:", e);
             mStore.addNotify("error", "Error pausing Consumer: " + e.getMessage());
         }
@@ -1230,7 +1306,7 @@ public class RoomClient extends RoomMessageHandler {
             consumer.resume();
             mStore.setConsumerResumed(consumer.getId(), "local");
         } catch (Exception e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             logError("resumeConsumer() | failed:", e);
             mStore.addNotify("error", "Error resuming Consumer: " + e.getMessage());
         }

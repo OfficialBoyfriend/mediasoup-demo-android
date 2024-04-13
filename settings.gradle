@@ -1,1 +1,6 @@
 include ':app'
+
+if (client_project_build.toBoolean()) {
+    include ':media_client'
+    project(":media_client").projectDir = new File(rootDir, "../mediasoup-client-android/mediasoup-client")
+}

@@ -1,12 +1,11 @@
 package org.mediasoup.droid.lib.lv;
 
 import androidx.annotation.NonNull;
-import androidx.core.util.Supplier;
 import androidx.lifecycle.MutableLiveData;
 
 @SuppressWarnings("WeakerAccess")
 public class SupplierMutableLiveData<T> extends MutableLiveData<T> {
-    public SupplierMutableLiveData(@NonNull Supplier<T> supplier) {
+    public SupplierMutableLiveData(@NonNull MySupplier<T> supplier) {
         setValue(supplier.get());
     }
 

@@ -1,13 +1,14 @@
 package org.mediasoup.droid.lib.model;
 
-import static org.mediasoup.droid.lib.RoomClient.ConnectionState;
 import static org.mediasoup.droid.lib.RoomClient.ConnectionState.NEW;
+
+import org.mediasoup.droid.lib.RoomClient;
 
 public class RoomInfo {
 
     private String mUrl;
     private String mRoomId;
-    private ConnectionState mConnectionState = NEW;
+    private RoomClient.ConnectionState mConnectionState = NEW;
     private String mActiveSpeakerId;
     private String mStatsPeerId;
     private boolean mFaceDetection = false;
@@ -28,11 +29,11 @@ public class RoomInfo {
         this.mRoomId = roomId;
     }
 
-    public ConnectionState getConnectionState() {
+    public RoomClient.ConnectionState getConnectionState() {
         return mConnectionState;
     }
 
-    public void setConnectionState(ConnectionState connectionState) {
+    public void setConnectionState(RoomClient.ConnectionState connectionState) {
         this.mConnectionState = connectionState;
     }
 

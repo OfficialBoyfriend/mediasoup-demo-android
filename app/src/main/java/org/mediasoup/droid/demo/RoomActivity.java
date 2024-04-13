@@ -114,7 +114,7 @@ public class RoomActivity extends AppCompatActivity {
     }
 
     private void initRoomClient() {
-        mRoomClient = new RoomClient(this, mRoomStore, mRoomId, mPeerId, mDisplayName, mForceH264, mForceVP9, mOptions);
+        mRoomClient = new RoomClient(this, mRoomStore,"47.108.173.250", 4443, mRoomId, mPeerId, mDisplayName, 1, mOptions);
     }
 
     private void initViewModel() {

@@ -3,9 +3,10 @@ package org.mediasoup.droid.lib;
 import androidx.annotation.NonNull;
 import androidx.annotation.WorkerThread;
 
+import org.mediasoup.droid.lib.socket.WebSocketTransport;
+
 import org.json.JSONObject;
 import org.mediasoup.droid.Logger;
-import org.mediasoup.droid.lib.socket.WebSocketTransport;
 import org.protoojs.droid.ProtooException;
 
 import io.reactivex.Observable;
@@ -15,7 +16,7 @@ public class Protoo extends org.protoojs.droid.Peer {
 
     private static final String TAG = "Protoo";
 
-    interface RequestGenerator {
+    public interface RequestGenerator {
         void request(JSONObject req);
     }
 

@@ -3,13 +3,14 @@ package org.mediasoup.droid.lib;
 import androidx.annotation.NonNull;
 import androidx.annotation.WorkerThread;
 
+import org.mediasoup.droid.lib.lv.RoomStore;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.mediasoup.droid.Consumer;
 import org.mediasoup.droid.DataConsumer;
 import org.mediasoup.droid.Logger;
-import org.mediasoup.droid.lib.lv.RoomStore;
 import org.protoojs.droid.Message;
 
 import java.util.Map;
@@ -73,12 +74,13 @@ class RoomMessageHandler {
                 String id = data.getString("id");
                 String displayName = data.optString("displayName");
                 mStore.addPeer(id, data);
-                mStore.addNotify(displayName + " has joined the room");
+                mStore.addNotify("newPeer", displayName + " has joined the room");
                 break;
             }
             case "peerClosed": {
                 String peerId = data.getString("peerId");
                 mStore.removePeer(peerId);
+                mStore.addNotify("peerClosed", "has exit the room");
                 break;
             }
             case "peerDisplayNameChanged": {
@@ -155,8 +157,10 @@ class RoomMessageHandler {
                 mStore.setRoomActiveSpeaker(peerId);
                 break;
             }
+            case "downlinkBwe":
+                break;
             default: {
-                Logger.e(TAG, "unknown protoo notification.method " + notification.getMethod());
+                Logger.w(TAG, "unknown protoo notification.method " + notification.getMethod());
             }
         }
     }

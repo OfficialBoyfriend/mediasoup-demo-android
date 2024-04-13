@@ -26,7 +26,6 @@ public class Peers {
     public void addPeer(String peerId, @NonNull JSONObject peerInfo) {
         mPeersInfo.put(peerId, new Peer(peerInfo));
     }
-
     public void removePeer(String peerId) {
         mPeersInfo.remove(peerId);
     }
